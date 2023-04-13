@@ -1,0 +1,25 @@
+---
+title: "data integrity"
+output: html_document
+date: "2023-04-08"
+---
+
+I need to md5 sum files at source here..
+
+
+
+
+Here is md5 some local 
+
+```{bash}
+md5sum ../Data/*
+```
+
+```{bash}
+shasum ../Data/*
+```
+
+
+For week 3 need proof they are same at source and locally. 
+
+
