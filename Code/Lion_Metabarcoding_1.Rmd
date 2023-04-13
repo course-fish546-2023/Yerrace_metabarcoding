@@ -4,26 +4,19 @@ output: html_document
 date: "2023-04-06"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+#Start with Raw sequences
 
-## R Markdown
+#Remove primer sequences
+forward UniCO1F and reverse UniCO1R primers from Leray et al 2013
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+#Read Quality
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#Filter and Trim
 
-```{r cars}
-summary(cars)
-```
+#Error Model
 
-## Including Plots
+#Inference of ASVs / OTUs
 
-You can also embed plots, for example:
+#Assign Taxonomy / BLAST
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+#Remove Lionfish reads
