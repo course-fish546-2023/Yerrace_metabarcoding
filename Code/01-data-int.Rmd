@@ -9,32 +9,32 @@ Here is md5 some local
 ```{bash}
 md5sum ../Data/*
 ```
-|---------------------------------|------------------------|
-|087f8a1f4988fe0624e248eddfd900a9 | ../Data/Data_READme.md |
-|3ca0219ca623cc85602ef6ab3bbbac82 | ../Data/JV173_UniCOI_Tornabene_S043447.1.R1.fastq.gz|
-|613bdd1cd62183bee1d1747f578a5fed | ../Data/JV173_UniCOI_Tornabene_S043447.1.R2.fastq.gz|
-|89e017be214be83146e285b1b8e7cc5d | ../Data/JV173_UniCOI_Tornabene_S043448.1.R1.fastq.gz|
-|aa9ffbf8eafffdcc03c1f167db1b0234 | ../Data/JV173_UniCOI_Tornabene_S043448.1.R2.fastq.gz|
-|f1853670e6bf413f0aec3252279a5146 | ../Data/JV173_UniCOI_Tornabene_S043449.1.R1.fastq.gz|
-|67b58dab50021e6f0cdc2df7276e0438 | ../Data/JV173_UniCOI_Tornabene_S043449.1.R2.fastq.gz|
-|20da00a35ffdc5d93db6c70295ac89f5 | ../Data/JV173_UniCOI_Tornabene_S043450.1.R1.fastq.gz|
-|410d4d51d0494001ee48e14f8889e0a2 | ../Data/JV173_UniCOI_Tornabene_S043450.1.R2.fastq.gz|
-|8032a2d11440b50d2ad794b3132b7cca | ../Data/JV173_UniCOI_Tornabene_S043451.1.R1.fastq.gz|
-|a9470b9d121c6e3be518910e21157dfa | ../Data/JV173_UniCOI_Tornabene_S043451.1.R2.fastq.gz|
+
+087f8a1f4988fe0624e248eddfd900a9  ../Data/Data_READme.md
+3ca0219ca623cc85602ef6ab3bbbac82  ../Data/JV173_UniCOI_Tornabene_S043447.1.R1.fastq.gz
+613bdd1cd62183bee1d1747f578a5fed  ../Data/JV173_UniCOI_Tornabene_S043447.1.R2.fastq.gz
+89e017be214be83146e285b1b8e7cc5d  ../Data/JV173_UniCOI_Tornabene_S043448.1.R1.fastq.gz
+aa9ffbf8eafffdcc03c1f167db1b0234  ../Data/JV173_UniCOI_Tornabene_S043448.1.R2.fastq.gz
+f1853670e6bf413f0aec3252279a5146  ../Data/JV173_UniCOI_Tornabene_S043449.1.R1.fastq.gz
+67b58dab50021e6f0cdc2df7276e0438  ../Data/JV173_UniCOI_Tornabene_S043449.1.R2.fastq.gz
+20da00a35ffdc5d93db6c70295ac89f5  ../Data/JV173_UniCOI_Tornabene_S043450.1.R1.fastq.gz
+410d4d51d0494001ee48e14f8889e0a2  ../Data/JV173_UniCOI_Tornabene_S043450.1.R2.fastq.gz
+8032a2d11440b50d2ad794b3132b7cca  ../Data/JV173_UniCOI_Tornabene_S043451.1.R1.fastq.gz
+a9470b9d121c6e3be518910e21157dfa  ../Data/JV173_UniCOI_Tornabene_S043451.1.R2.fastq.gz
+
 ```{bash}
 shasum ../Data/*
 ```
-|-----------------------------------------|-----------------------|
-|51c5decf3457ad733b51730f95c01dad6832f2cb | ../Data/Data_READme.md|
-|45eed5798fd8ab08fdf012ad8bb4436716dab86f | ../Data/JV173_UniCOI_Tornabene_S043447.1.R1.fastq.gz|
-|9a085b51c0c862855e612b5598584e948623a632 | ../Data/JV173_UniCOI_Tornabene_S043447.1.R2.fastq.gz|
-|ef094b792450a0fc79518d20b1eec92239949cae | ../Data/JV173_UniCOI_Tornabene_S043448.1.R1.fastq.gz|
-|cc67439357187f78d53f0f287c4e05661197d313 | ../Data/JV173_UniCOI_Tornabene_S043448.1.R2.fastq.gz|
-|116a63450ffb7dd8e1021685744a0faa7ffd0497 | ../Data/JV173_UniCOI_Tornabene_S043449.1.R1.fastq.gz|
-|ecd37807301b4f37df0d0eaa81deee4cc93b1f91 | ../Data/JV173_UniCOI_Tornabene_S043449.1.R2.fastq.gz|
-|d34d66b1032c44c54f440bd07c09e6e4d6b8f72d | ../Data/JV173_UniCOI_Tornabene_S043450.1.R1.fastq.gz|
-|01ef7b702c8bf7d723a3d9fee92a40b3efeedc27 | ../Data/JV173_UniCOI_Tornabene_S043450.1.R2.fastq.gz|
-|8bdd8855ec46fc22d8e250bd5416421c7be2cea0 | ../Data/JV173_UniCOI_Tornabene_S043451.1.R1.fastq.gz|
-|3692984a699d01fda1831d8a34e8c97eef5dfee8 | ../Data/JV173_UniCOI_Tornabene_S043451.1.R2.fastq.gz|
+51c5decf3457ad733b51730f95c01dad6832f2cb  ../Data/Data_READme.md
+45eed5798fd8ab08fdf012ad8bb4436716dab86f  ../Data/JV173_UniCOI_Tornabene_S043447.1.R1.fastq.gz
+9a085b51c0c862855e612b5598584e948623a632  ../Data/JV173_UniCOI_Tornabene_S043447.1.R2.fastq.gz
+ef094b792450a0fc79518d20b1eec92239949cae  ../Data/JV173_UniCOI_Tornabene_S043448.1.R1.fastq.gz
+cc67439357187f78d53f0f287c4e05661197d313  ../Data/JV173_UniCOI_Tornabene_S043448.1.R2.fastq.gz
+116a63450ffb7dd8e1021685744a0faa7ffd0497  ../Data/JV173_UniCOI_Tornabene_S043449.1.R1.fastq.gz
+ecd37807301b4f37df0d0eaa81deee4cc93b1f91  ../Data/JV173_UniCOI_Tornabene_S043449.1.R2.fastq.gz
+d34d66b1032c44c54f440bd07c09e6e4d6b8f72d  ../Data/JV173_UniCOI_Tornabene_S043450.1.R1.fastq.gz
+01ef7b702c8bf7d723a3d9fee92a40b3efeedc27  ../Data/JV173_UniCOI_Tornabene_S043450.1.R2.fastq.gz
+8bdd8855ec46fc22d8e250bd5416421c7be2cea0  ../Data/JV173_UniCOI_Tornabene_S043451.1.R1.fastq.gz
+3692984a699d01fda1831d8a34e8c97eef5dfee8  ../Data/JV173_UniCOI_Tornabene_S043451.1.R2.fastq.gz
 
 
