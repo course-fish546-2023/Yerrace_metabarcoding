@@ -6,9 +6,6 @@ date: "2023-04-08"
 
 I need to md5 sum files at source here..
 
-
-
-
 Here is md5 some local 
 
 ```{bash}
