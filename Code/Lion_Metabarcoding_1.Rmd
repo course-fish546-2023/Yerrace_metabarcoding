@@ -5,6 +5,7 @@ date: "2023-04-06"
 ---
 
 #Start with Raw sequences
+in Data folder
 
 #Remove primer sequences
 forward UniCO1F and reverse UniCO1R primers from Leray et al 2013
@@ -18,5 +19,26 @@ forward UniCO1F and reverse UniCO1R primers from Leray et al 2013
 #Inference of ASVs / OTUs
 
 #Assign Taxonomy / BLAST
+
+Download
+
+```{bash}
+cd ~/Yerrace_metabarcoding/Applications
+curl -O https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.13.0+-x64-linux.tar.gz
+```
+
+unzip the file
+
+```{bash}
+cd ~/Yerrace_metabarcoding/Applications
+tar -xf ncbi-blast-2.13.0+-x64-linux.tar.gz
+```
+
+Check that it's working by using the help function (-h)
+
+```{bash}
+~/Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastx -h
+```
+
 
 #Remove Lionfish reads
