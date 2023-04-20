@@ -1,0 +1,11 @@
+Module	Section	Sample Name	Source
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043450.1.R2	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043450.1.R2_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043451.1.R1	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043451.1.R1_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043448.1.R2	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043448.1.R2_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043451.1.R2	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043451.1.R2_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043450.1.R1	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043450.1.R1_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043449.1.R1	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043449.1.R1_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043449.1.R2	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043449.1.R2_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043448.1.R1	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043448.1.R1_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043447.1.R2	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043447.1.R2_fastqc.zip
+FastQC	all_sections	JV173_UniCOI_Tornabene_S043447.1.R1	/home/shared/8TB_HDD_02/sarahyerrace/Yerrace_metabarcoding/Output/JV173_UniCOI_Tornabene_S043447.1.R1_fastqc.zip
