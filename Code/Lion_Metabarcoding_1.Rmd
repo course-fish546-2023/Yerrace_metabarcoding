@@ -4,6 +4,18 @@ output: html_document
 date: "2023-04-06"
 ---
 
+```{r}
+install.packages('DADA2')
+install.packages('stringr')
+install.packages('kableExtra')
+installed.packages('knitr')
+install.packages('tidyverse')
+install.packages('digest')
+```
+
+
+
+
 #Start with Raw sequences
 in Data folder
 
@@ -11,6 +23,22 @@ in Data folder
 forward UniCO1F and reverse UniCO1R primers from Leray et al 2013
 
 #Read Quality
+
+```{bash}
+cd ../Data 
+/home/shared/FastQC/fastqc *fastq.gz -o ../Output
+```
+
+```{bash}
+eval "$(/opt/anaconda/anaconda3/bin/conda shell.bash hook)"
+conda activate
+which multiqc
+
+cd ../output
+
+multiqc .
+```
+
 
 #Filter and Trim
 
