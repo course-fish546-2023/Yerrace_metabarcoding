@@ -1,0 +1,323 @@
+---
+title: "MetaBarcoding_Pipline"
+author: "Sarah Yerrace with assitance from Marta GB"
+date: "2023-04-20"
+output: html_document
+---
+
+Let's take Marta's data and metadata, and run DADA2 and insect pipelines
+Worship Marta and the ground she walks on, may her pipline bring joy to all.
+
+Stand on the shoulders of giants!
+
+```{r}
+library (tidyverse)
+install.packages('insect')
+library (insect)
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("dada2") # this one said it was for version 4.0 of R and I have 4.0.3
+library (dada2)
+library (digest)
+library (seqinr)
+library(lubridate)
+```
+
+Load the files
+
+```{r}
+metadata <- read.csv("../Yerrace_metabarcoding/metadata.csv")
+head(metadata)
+metadata %>% rename(sample = `ENV.ID.`) -> metadata
+
+# Let's inspect the metadata
+
+glimpse (metadata)
+
+metadata %>%  mutate(sample = as.character(sample)) -> metadata
+
+n_distinct(metadata$sample)
+
+# sample names are repeated - No!
+
+metadata %>%  group_by (sample) %>% summarise(tot = n()) %>%  arrange(desc(tot)) # 118
+
+
+
+```
+
+Step 1 : remove primner sequences from the fastq files. Run the script "Scripts/cutadapt_in_all_folder.sh".  Save the output files in the trimmed folder. Now all sfiles with sequences are in the folder /noprimers
+
+
+
+```{r}
+
+## run cutadapt script (see scripts folder) with all the original FASTQ files from Ventures raw sequences to remove the primers at both ends of each sequence
+
+fastqs <- "../Yerrace_metabarcoding/Data/"
+
+F1s <- sort(list.files(fastqs, pattern="R1.fastq", full.names = TRUE))
+R1s <- sort(list.files(fastqs, pattern="R2.fastq", full.names = TRUE))
+
+sample.names <- str_replace(basename(F1s), "_R1.fastq","")
+
+#sample.names <- str_replace(sample.names, "JV91_UniCOI_Tornabene_", "")
+
+```
+
+Some of the fastq files had their names wrong: there is a file that has the conversion to solve those mistakes.
+
+
+
+```{r convert fastq names to sample names}
+
+conversion.df <- tibble (fastq.name = sample.names) # Create a tibble with the fastq names
+
+conversion.df %>% 
+  
+  mutate (sample = str_replace(fastq.name, "JV91_UniCOI_Tornabene_", "")) %>% # Remove the beggining of the fastq names
+  
+  mutate(sample = str_replace(sample, "_R1.fastq", "")) -> conversion.df # Remove the end of the fastq names. This should look like the real sample names
+
+
+conversion.df
+
+```
+
+Load the file with the mistakes and how to solve them
+
+```{r Fix the mistakes}
+
+# load the file with the name conversions
+
+new.sample.names <- read_csv("../Data/Real_sample_name.csv", col_types = list(col_character(), col_character()))
+
+# Join both datasets
+
+conversion.df %>%  
+  
+  left_join(new.sample.names, by = c("sample" = "Original_name")) %>% # joins both datasets
+  
+  mutate(new.sample = case_when( is.na(Real_name) ~ sample,
+                                 TRUE             ~ Real_name)) %>% 
+  
+  select (fastq.name, eDNA_Sample = new.sample) %>% 
+  
+  separate (eDNA_Sample, into = c("eDNA_Sample","Seq_replicate"), sep = "\\.") -> conversion.df
+
+write_csv(conversion.df, "../Data/conversion.csv")
+
+```
+
+Let's check if there are samples that we didn't sequence or fastq files that don't have a real sample
+
+
+```{r What are we missing}
+
+anti_join(conversion.df, metadata, by = c("eDNA_Sample" = "sample" )) 
+
+#  6 samples are not in the metadata
+
+summary(metadata$sample %in% conversion.df$eDNA_Sample) # All 70 samples in the metadata file are at least once in the fastq files
+
+
+
+
+
+```
+
+Run dada 2 step by step
+
+```{r filter data}
+
+filt_path <- file.path(fastqs, "/filtered") # Place filtered files in filtered/ subdirectory
+filtF1s <- file.path(filt_path, paste0(sample.names, "_F1_filt.fastq.gz"))
+filtR1s <- file.path(filt_path, paste0(sample.names, "_R1_filt.fastq.gz"))
+out_Fs <- filterAndTrim(F1s, filtF1s, R1s, filtR1s, truncLen=c(200,200),
+                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                      compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
+```
+
+Step 2: Learning error
+
+```{r learning errors}
+errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
+errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
+```
+
+Keep only unique seqs
+
+```{r dereplicate}
+
+derepF1s <- derepFastq(filtF1s, verbose = TRUE)
+derepR1s <- derepFastq(filtR1s, verbose = TRUE)
+
+```
+
+Apply dadaism
+
+```{r dadaing}
+
+dadaF1s <- dada(derepF1s, err = errF1, multithread = TRUE)
+
+dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
+
+```
+
+Merge fwd and Rev
+
+```{r}
+mergers <- mergePairs(dadaF1s,
+   derepF1s,
+   dadaR1s,
+   derepR1s,
+   verbose = 0)
+```
+
+ Run a for loop that adds the number of unique reads that went into each ASV
+```{r}
+
+for (j in 1:length(mergers)){
+
+  dadaF1s[[j]]@.Data[[2]] %>% rownames_to_column(var="forward") %>% select("forward", "nunq") ->Fwd
+  Fwd$forward<-as.integer(Fwd$forward)
+  dadaR1s[[j]]@.Data[[2]] %>% rownames_to_column(var="reverse") %>% select("reverse", "nunq") ->Rev
+  Rev$reverse<-as.integer(Rev$reverse)
+
+  mergers[[j]] <- left_join(mergers[[j]],Fwd, by="forward") %>% left_join(Rev, by="reverse") %>% mutate(nunq=pmin(nunq.x,nunq.y)) %>% select(-nunq.x,-nunq.y)
+
+
+}
+```
+
+Make a table with all sequences
+
+```{r}
+seqtabF <- makeSequenceTable(mergers)
+
+dim(seqtabF)
+
+table(nchar(getSequences(seqtabF)))
+
+```
+
+Removing chimeras
+
+```{r RemovingChimeras, message=F}
+
+seqtab.nochim <- removeBimeraDenovo(seqtabF, method="consensus", multithread=TRUE)
+
+dim(seqtab.nochim)
+
+
+```
+
+
+## IF selected, proceed with Hashing: create a hash conversion table and saving files in tidyr format
+
+We are going to keep the info in a tidyr format and save it into a csv file
+
+```{r tidying and writing}
+
+seqtab.nochim.df=as.data.frame(seqtab.nochim)
+
+
+
+# Now decide if you want hashing or not
+
+  conv_file <- "../Data/Run_Aug_2019/hash_key.csv"
+  
+  ASV_file <- "../Data/Run_Aug_2019/ASV_table.csv"
+
+  conv_table <- tibble( Hash = "", Sequence ="")
+
+  hashes <- list(NULL)
+
+  for (i in 1:ncol(seqtab.nochim.df)) {   #for each column of the dataframe
+
+    current_seq <-colnames(seqtab.nochim.df)[i] # Take the whole sequence from each column of the dataframe
+
+    current_hash <- digest(current_seq,algo = "sha1",serialize = F,skip = "auto") # Hash it so it is both shorter and unique
+
+    hashes[[i]] = current_hash
+
+    conv_table [i,]<-c(current_hash, current_seq) # add the Hash - sequence conversion to a table
+
+    colnames(seqtab.nochim.df)[i] <- current_hash
+
+  }
+
+  write_csv(conv_table, conv_file) # write the table into a file
+
+
+seqtab.nochim.df$sample=rownames(seqtab.nochim.df) # Take the samples from the row names
+
+seqtab.nochim.df %>% 
+  mutate(sample = str_replace(sample, "_R1.fastq_F1_filt.fastq.gz", "")) %>% 
+
+ gather( key=Hash, value = nReads, -sample) %>% # Go from wide table to long table - so you don't have 0s
+  
+  filter(nReads > 0) -> current_asv
+
+write_csv(current_asv, ASV_file) # write to file
+
+
+```
+
+### Final check point
+
+Let's check that all the sample names we have used in this pipeline are present in our conversion file
+
+```{r check ASV.table with conversion.file}
+
+anti_join(current_asv, conversion.df, by = c("sample" = "fastq.name"))
+
+
+```
+
+
+
+## Track the fate of all reads
+
+```{r output_summary}
+
+getN <- function(x) sum(getUniques(x))
+track <- as.data.frame(cbind(out_Fs, 
+                             sapply(dadaF1s, getN), sapply(dadaR1s, getN),
+                             sapply(mergers, getN),
+                             rowSums(seqtabF),
+                             rowSums(seqtab.nochim)))
+# If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track) <- c("input_F", "filtered_F",
+                     "denoised_F", "denoised_R",
+                     "merged_F", 
+                     "tabled_F", 
+                     "nonchim")
+track %>% 
+  rownames_to_column("Sample") %>% 
+write_csv( "../Data/Run_Aug_2019/dada2_summary.csv")
+
+```
+
+## Join taxonomy with contingency table (make sure the in line 304 the names of the columns is correct)
+
+```{r asv}
+
+library(here)
+library(dplyr)
+ASV_table <- read_csv("/Users/mgb/Documents/APhD/MyPhD/Chapter1_edNA/Data/Run_Aug_2019/ASV_table.csv")
+last_insect <- read_csv("/Users/mgb/Documents/APhD/MyPhD/Chapter1_edNA/Data/Run_Aug_2019/last.insect.csv")
+ASV_table %>% left_join(last_insect, by = c("Hash" = "representative")) %>% # joins both tables matching Hash label and the taxonomic representative
+  group_by (species, sample) -> asv_species
+
+asv_species  %>%  # it'll group the samples by species
+  summarize(total_reads = sum(nReads))# will generate a table summary with the number of reads per species/sample
+
+
+write_csv(asv_species, "/Users/mgb/Documents/APhD/MyPhD/Chapter1_edNA/Data/Run_Aug_2019/asv_species.csv", append = FALSE)
+
+
+
+```
+

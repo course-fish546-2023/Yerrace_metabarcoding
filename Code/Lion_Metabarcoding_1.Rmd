@@ -15,7 +15,6 @@ install.packages('digest')
 
 
 
-
 #Start with Raw sequences
 in Data folder
 
@@ -34,7 +33,7 @@ eval "$(/opt/anaconda/anaconda3/bin/conda shell.bash hook)"
 conda activate
 which multiqc
 
-cd ../output
+cd ../Output
 
 multiqc .
 ```
@@ -68,5 +67,22 @@ Check that it's working by using the help function (-h)
 ~/Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastx -h
 ```
 
+
+This will be making a database. CUrrently, copied and pasted, will need to change
+
+```{bash}
+cd ../data
+curl -O https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+mv uniprot_sprot.fasta.gz uniprot_sprot_r2023_01.fasta.gz
+gunzip -k uniprot_sprot_r2023_01.fasta.gz
+ls ../data
+```
+
+```{bash}
+/Applications/bioinfo/ncbi-blast-2.13.0+/bin/makeblastdb \
+-in ../data/uniprot_sprot_r2023_01.fasta \
+-dbtype prot \
+-out ../blastdb/uniprot_sprot_r2023_01
+```
 
 #Remove Lionfish reads
