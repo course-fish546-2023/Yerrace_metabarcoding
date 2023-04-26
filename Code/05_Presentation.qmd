@@ -1,0 +1,79 @@
+---
+title: "Week 5 Presentation"
+format: revealjs
+editor: visual
+---
+
+## FISH 546 Week 5 Presentation
+
+Sarah Yerrace
+
+Invasive Lionfish Gut Content Metabarcoding
+
+![Red Lionfish (*Pterois volitans*) (Include image, CHECK)](https://media.istockphoto.com/id/1208022389/photo/common-lionfish.jpg?s=612x612&w=0&k=20&c=L_3RCsBhqKFKFeOkDpuEAW7r-zls-E-CVLVXWPKxskM=)
+
+## One) Clearly Demonstrate Goal
+
+-Start: Raw sequences from COI (mtDNA)
+
+-End: Taxon assignments to sequences
+
+JonahVentures technically does this for me. I want to do it better with different database
+
+## Two) Methods taken
+
+One of many fastQ files
+
+```{r, echo=FALSE, eval=TRUE}
+sequence <- read.csv("../Data/JV173_UniCOI_Tornabene_S043447.1.R1.fastq.gz")
+head(sequence)
+```
+
+(Show parts of initial data, CHECK)
+
+## Two) Methods taken
+
+Here's sneak peak of my metadata file
+
+```{r, echo=FALSE, eval=TRUE}
+metadata <- read.csv("../metadata.csv")
+head(metadata)
+```
+
+(table included, CHECK)
+
+## Two) Methods taken
+
+Show core code
+
+```{r, eval=FALSE, echo=TRUE}
+
+## run cutadapt script (see scripts folder) with all the original FASTQ files from Ventures raw sequences to remove the primers at both ends of each sequence
+
+fastqs <- "../Data/"
+
+F1s <- sort(list.files(fastqs, pattern="R1.fastq", full.names = TRUE))
+R1s <- sort(list.files(fastqs, pattern="R2.fastq", full.names = TRUE))
+
+sample.names <- str_replace(basename(F1s), "_R1.fastq","")
+
+
+```
+
+## Three) Preliminary Results
+
+This is using the taxon assingment provided by JonahVentures from just N=4 of N=132 lionfish 
+
+```{r, echo=TRUE, eval=TRUE}
+#| code-line-numbers: "2"
+prelim <- read.csv("../Output/JVB1606-UniCOI-read-data.csv")
+hist(x=prelim$X..match, main= "Sequence Percent Match", xlab="% Match")
+```
+
+Make a plot from code, CHECK, highlight line of code, CHECK
+
+## Four) Outline Steps for the Future
+
+Meet with Marta ASAP when she returns from the field 
+
+Pray?

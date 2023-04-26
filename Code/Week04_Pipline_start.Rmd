@@ -14,7 +14,7 @@ Stand on the shoulders of giants!
 library (tidyverse)
 install.packages('insect')
 library (insect)
-if (!requireNamespace("BiocManager", quietly = TRUE))
+#if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("dada2") # this one said it was for version 4.0 of R and I have 4.0.3
@@ -27,7 +27,7 @@ library(lubridate)
 Load the files
 
 ```{r}
-metadata <- read.csv("../Yerrace_metabarcoding/metadata.csv")
+metadata <- read.csv("../metadata.csv")
 head(metadata)
 metadata %>% rename(sample = `ENV.ID.`) -> metadata
 
@@ -55,7 +55,7 @@ Step 1 : remove primner sequences from the fastq files. Run the script "Scripts/
 
 ## run cutadapt script (see scripts folder) with all the original FASTQ files from Ventures raw sequences to remove the primers at both ends of each sequence
 
-fastqs <- "../Yerrace_metabarcoding/Data/"
+fastqs <- "../Data/"
 
 F1s <- sort(list.files(fastqs, pattern="R1.fastq", full.names = TRUE))
 R1s <- sort(list.files(fastqs, pattern="R2.fastq", full.names = TRUE))
