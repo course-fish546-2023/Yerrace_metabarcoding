@@ -29,7 +29,7 @@ Load the files
 ```{r}
 metadata <- read.csv("../metadata.csv")
 head(metadata)
-metadata %>% rename(sample = `ENV.ID.`) -> metadata
+metadata %>% rename(sample = `Sample_name`) -> metadata
 
 # Let's inspect the metadata
 
@@ -76,7 +76,7 @@ conversion.df <- tibble (fastq.name = sample.names) # Create a tibble with the f
 
 conversion.df %>% 
   
-  mutate (sample = str_replace(fastq.name, "JV91_UniCOI_Tornabene_", "")) %>% # Remove the beggining of the fastq names
+  mutate (sample = str_replace(fastq.name, "JV173_UniCOI_Tornabene_", "")) %>% # Remove the beggining of the fastq names
   
   mutate(sample = str_replace(sample, "_R1.fastq", "")) -> conversion.df # Remove the end of the fastq names. This should look like the real sample names
 
@@ -120,9 +120,6 @@ anti_join(conversion.df, metadata, by = c("eDNA_Sample" = "sample" ))
 #  6 samples are not in the metadata
 
 summary(metadata$sample %in% conversion.df$eDNA_Sample) # All 70 samples in the metadata file are at least once in the fastq files
-
-
-
 
 
 ```
