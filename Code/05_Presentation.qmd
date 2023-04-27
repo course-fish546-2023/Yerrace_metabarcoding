@@ -40,6 +40,18 @@ metadata <- read.csv("../metadata.csv")
 head(metadata)
 ```
 
+
+## Two) Methods taken
+
+| Sample Name | Locus | Well | Set | File 1
+|------|------|------| ------|  ------|
+| Test 1 | Leray_COI | A1 | 1 | JV173_UniCOI_Tornabene_S043447.1.R1 |
+| Test 2 | Leray_COI | B1 | 1 | JV173_UniCOI_Tornabene_S043448.1.R1 |
+| Test 3 | Leray_COI | C1 | 1 | JV173_UniCOI_Tornabene_S043449.1.R1 |
+| Test 4 | Leray_COI | D1 | 1 | JV173_UniCOI_Tornabene_S043450.1.R1 |
+| Test 5 | Leray_COI | C1 | 1 | JV173_UniCOI_Tornabene_S043451.1.R1 |
+
+
 (table included, CHECK)
 
 ## Two) Methods taken
@@ -62,7 +74,7 @@ sample.names <- str_replace(basename(F1s), "_R1.fastq","")
 
 ## Three) Preliminary Results
 
-This is using the taxon assingment provided by JonahVentures from just N=4 of N=132 lionfish 
+This is using the taxon assingment provided by JonahVentures from just N=4 of N=132 lionfish
 
 ```{r, echo=TRUE, eval=TRUE}
 #| code-line-numbers: "2"
@@ -74,6 +86,8 @@ Make a plot from code, CHECK, highlight line of code, CHECK
 
 ## Four) Outline Steps for the Future
 
-Meet with Marta ASAP when she returns from the field 
+Meet with Marta next week
 
-Pray?
+Run Blast
+
+Remove Lionfish reads
