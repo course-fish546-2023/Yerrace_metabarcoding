@@ -1,0 +1,189 @@
+---
+title: "06_practice"
+author: "Sarah Yerrace"
+date: "2023-05-03"
+output: html_document
+---
+
+```{r}
+library (tidyverse)
+install.packages('insect')
+library (insect)
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("dada2")
+library (digest)
+library (seqinr)
+library(lubridate)
+library(ShortRead)
+library(dada2); packageVersion("dada2")
+```
+
+```{r}
+cutadapt <- "../Applications/cutadapt.exe"
+```
+
+```{r}
+FWD <- "GGWACWGGWTGAACWGTWTAYCCYCC"
+REV <- "TANACYTCNGGRTGNCCRAARAAYCA" #N's replaced I's from Jonah
+
+allOrients <- function(primer) {
+  require(Biostrings)
+  dna <- DNAString(primer)
+  orients <- c(Forward = dna, Complement = complement(dna), Reverse = reverse(dna), RevComp = reverseComplement(dna))
+  return(sapply(orients, toString))
+}
+
+FWD.orients <- allOrients(FWD)
+FWD.orients
+REV.orients <- allOrients(REV)
+REV.orients
+```
+
+```{r}
+primerHits <- function(primer, fn){
+  nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
+  return(sum(nhits > 0))
+}
+
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]),
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
+
+```
+
+```{r}
+system2(cutadapt, args = "--version")
+```
+
+Running cutadapt. Permission denied on raven but works on laptop
+
+```{r}
+path.cut <- file.path(path, "cutadapt")
+if(!dir.exists(path.cut)) dir.create(path.cut)
+fnFs.cut <- file.path(path.cut, basename(fnFs))
+fnRs.cut <- file.path(path.cut, basename(fnRs))
+
+R1.flags <- paste0("-g", " ^", FWD)
+R2.flags <- paste0("-G", " ^", REV)
+
+for(i in seq_along(fnFs)) {
+  system2(cutadapt, args = c(R1.flags, R2.flags,
+                             "-m 1", #discards reads having length zero bp
+                             "--discard-untrimmed",
+                             "-o", fnFs.cut[i], "-p", fnRs.cut[i], #output files
+                             fnFs[i], fnRs[i])) #input files
+}
+```
+
+
+
+Path to fastq files. 
+
+```{r}
+path <- "../Data/"
+list.files(path)
+```
+
+Sorting forward and reverse reads based on file name pattern
+
+```{r}
+
+fnFs <- sort(list.files(path, pattern=".R1.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern=".R2.fastq", full.names = TRUE))
+
+sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
+
+```
+
+This shows a plot of the quality of the forward reads
+
+```{r}
+plotQualityProfile(fnFs[1:5])
+```
+This plot shows quality of the reverse reads
+
+```{r}
+plotQualityProfile(fnRs[1:5])
+```
+Filter and trim
+
+```{r}
+filt_path <- file.path(fastqs, "/filtered.2") # Place filtered files in filtered/ subdirectory
+filtF1s <- file.path(filt_path, paste0(sample.names, "_F1_filt.fastq.gz"))
+filtR1s <- file.path(filt_path, paste0(sample.names, "_R1_filt.fastq.gz"))
+out_Fs <- filterAndTrim(F1s, filtF1s, R1s, filtR1s, truncLen=c(200,200),
+                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                      compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
+head(out_Fs)
+```
+
+```{r learning errors}
+errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
+errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
+```
+
+visualise the estimated error rates
+
+```{r}
+plotErrors(errF1, nominalQ=TRUE)
+```
+
+```{r dereplicate}
+
+derepF1s <- derepFastq(filtF1s, verbose = TRUE)
+derepR1s <- derepFastq(filtR1s, verbose = TRUE)
+
+```
+
+```{r dadaing}
+
+dadaF1s <- dada(derepF1s, err = errF1, multithread = TRUE)
+
+dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
+
+dadaF1s[[1]]
+```
+
+Merge paired reads
+
+```{r}
+mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, verbose=TRUE)
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+```
+
+Construct sequence table
+
+```{r}
+seqtab <- makeSequenceTable(mergers)
+
+dim(seqtab)
+
+table(nchar(getSequences(seqtab)))
+
+```
+```{r RemovingChimeras, message=F}
+
+seqtab.nochim <- removeBimeraDenovo(seqtabF, method="consensus", multithread=TRUE)
+
+dim(seqtab.nochim)
+
+
+```
+
+```{r}
+sum(seqtab.nochim)/sum(seqtab)
+```
+
+Track the reads through the pipeline. Seems to be a big drop after removing chimeras?
+
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out_Fs, sapply(dadaF1s, getN), sapply(dadaR1s, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+# If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
