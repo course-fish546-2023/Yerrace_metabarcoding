@@ -5,6 +5,8 @@ date: "2023-05-03"
 output: html_document
 ---
 
+Load the necessary packages
+
 ```{r}
 library (tidyverse)
 install.packages('insect')
@@ -20,9 +22,15 @@ library(ShortRead)
 library(dada2); packageVersion("dada2")
 ```
 
+This is the path to cut adapt. I don't have permission to run on raven but I can run this on my laptop with appropriate directory
+
 ```{r}
 cutadapt <- "../Applications/cutadapt.exe"
 ```
+
+These are the COI primers. Taken from methods txt file from Jonah ventures.
+The Function allOrients makes forward, compliment, reverse, and reverse compliment for both primers. 
+This is to look for the primers in the sequences in any orientation (PrimerHits, the next function/ chunck)
 
 ```{r}
 FWD <- "GGWACWGGWTGAACWGTWTAYCCYCC"
@@ -41,6 +49,8 @@ REV.orients <- allOrients(REV)
 REV.orients
 ```
 
+PrimerHits function is looking for the primers in all orientations in the sequences.
+
 ```{r}
 primerHits <- function(primer, fn){
   nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
@@ -51,6 +61,8 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]),
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
 
 ```
+
+This checks that we can use cutadapt
 
 ```{r}
 system2(cutadapt, args = "--version")
@@ -76,9 +88,7 @@ for(i in seq_along(fnFs)) {
 }
 ```
 
-
-
-Path to fastq files. 
+Path to fastq files after trimming primers 
 
 ```{r}
 path <- "../Data/"
@@ -106,6 +116,7 @@ This plot shows quality of the reverse reads
 ```{r}
 plotQualityProfile(fnRs[1:5])
 ```
+
 Filter and trim
 
 ```{r}
