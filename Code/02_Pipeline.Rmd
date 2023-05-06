@@ -60,7 +60,7 @@ fastqs <- "../Data/"
 F1s <- sort(list.files(fastqs, pattern="R1.fastq", full.names = TRUE))
 R1s <- sort(list.files(fastqs, pattern="R2.fastq", full.names = TRUE))
 
-sample.names <- str_replace(basename(F1s), "_R1.fastq","")
+sample.names <- str_replace(basename(F1s), ".R1.fastq","")
 
 #sample.names <- str_replace(sample.names, "JV91_UniCOI_Tornabene_", "")
 

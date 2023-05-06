@@ -5,6 +5,9 @@ date: "2023-05-03"
 output: html_document
 ---
 
+Following
+https://benjjneb.github.io/dada2/tutorial.html
+
 # Set Up
 
 Load the necessary packages
@@ -30,7 +33,7 @@ library(dplyr)
 Path to fastq files after trimming primers 
 
 ```{r}
-path <- "../Yerrace_metabarcoding/Data/"
+path <- "../Data/"
 list.files(path)
 ```
 
@@ -46,6 +49,8 @@ sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
 ```
 
 This shows a plot of the quality of the forward reads
+
+In gray-scale is a heat map of the frequency of each quality score at each base position. The mean quality score at each position is shown by the green line, and the quartiles of the quality score distribution by the orange lines. The red line shows the scaled proportion of reads that extend to at least that position (this is more useful for other sequencing technologies, as Illumina reads are typically all the same length, hence the flat red line).
 
 ```{r}
 plotQualityProfile(fnFs[1:5])
@@ -130,7 +135,7 @@ for(i in seq_along(fnFs)) {
 Path to fastq files after trimming primers 
 
 ```{r}
-path.cut <- "../Yerrace_metabarcoding/Data/cutadapt"
+path.cut <- "../Data/cutadapt"
 list.files(path.cut)
 ```
 
@@ -157,22 +162,21 @@ This plot shows quality of the reverse reads
 plotQualityProfile(fnRs_cut[1:5])
 ```
 
-Filter and trim
+# Filter and trim
 
 ```{r}
-filt_path <- file.path(fastqs, "/filtered.2") # Place filtered files in filtered/ subdirectory
-#filtF1s <- file.path(filt_path, paste0(sample.names, "_F1_filt.fastq.gz"))
-#filtR1s <- file.path(filt_path, paste0(sample.names, "_R1_filt.fastq.gz"))
 
-filtFs <- file.path(filt_path, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
-filtRs <- file.path(filt_path, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
+filtF1s <- file.path(path, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
+filtR1s <- file.path(path, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
 
-out_Fs <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
+out <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
                       maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
                       compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
-head(out_Fs)
+
+head(out)
+
 ```
 
 ```{r learning errors}
@@ -202,7 +206,7 @@ dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
 dadaF1s[[1]]
 ```
 
-Merge paired reads
+# Merge paired reads
 
 ```{r}
 mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, verbose=TRUE)
@@ -210,19 +214,31 @@ mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, verbose=TRUE)
 head(mergers[[1]])
 ```
 
-Construct sequence table
+# Construct sequence table
+
+construct an amplicon sequence variant table (ASV) table, a higher-resolution version of the OTU table produced by traditional methods.
 
 ```{r}
 seqtab <- makeSequenceTable(mergers)
 
 dim(seqtab)
 
-table(nchar(getSequences(seqtab)))
-
 ```
+
+The sequence table is a matrix with rows corresponding to (and named by) the samples, and columns corresponding to (and named by) the sequence variants.
+
+```{r}
+#Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+```
+
+# Remove Chimeras
+
+The core dada method corrects substitution and indel errors, but chimeras remain. Fortunately, the accuracy of sequence variants after denoising makes identifying chimeric ASVs simpler than when dealing with fuzzy OTUs. Chimeric sequences are identified if they can be exactly reconstructed by combining a left-segment and a right-segment from two more abundant “parent” sequences.
+
 ```{r RemovingChimeras, message=F}
 
-seqtab.nochim <- removeBimeraDenovo(seqtabF, method="consensus", multithread=TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
 
 dim(seqtab.nochim)
 
@@ -233,7 +249,7 @@ dim(seqtab.nochim)
 sum(seqtab.nochim)/sum(seqtab)
 ```
 
-Track the reads through the pipeline. Seems to be a big drop after removing chimeras?
+# Track the reads through the pipeline.
 
 ```{r}
 getN <- function(x) sum(getUniques(x))
