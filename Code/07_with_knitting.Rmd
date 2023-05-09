@@ -1,0 +1,286 @@
+---
+title: "06_practice"
+author: "Sarah Yerrace"
+date: "2023-05-03"
+output: 
+  html_document:
+    theme: readable
+    toc: true
+    toc_float: true
+    number_sections: true
+    code_folding: show
+---
+
+```{r setup , include=FALSE}
+library(knitr)
+library(tidyverse)
+library(kableExtra)
+library(DT)
+library(Biostrings)
+library(tm)
+knitr::opts_chunk$set(
+  echo = TRUE,         # Display code chunks
+  eval = FALSE,         # Evaluate code chunks
+  warning = FALSE,     # Hide warnings
+  message = FALSE,     # Hide messages
+  fig.width = 6,       # Set plot width in inches
+  fig.height = 4,      # Set plot height in inches
+  fig.align = "center" # Align plots to the center
+)
+```
+
+# Acknowledgments
+
+Following <https://benjjneb.github.io/dada2/tutorial.html>
+
+# Set Up
+
+Load the necessary packages
+
+```{r}
+library (tidyverse)
+install.packages('insect')
+library (insect)
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("dada2")
+library (digest)
+library (seqinr)
+library(lubridate)
+library(ShortRead)
+library(dada2); packageVersion("dada2")
+library(dplyr)
+```
+
+# Check the Starting Quality
+
+Path to fastq files before trimming primers
+
+```{r}
+path <- "../Data/"
+list.files(path)
+```
+
+Sorting forward and reverse reads based on file name pattern
+
+```{r}
+
+fnFs <- sort(list.files(path, pattern=".R1.fastq", full.names = TRUE))
+fnRs <- sort(list.files(path, pattern=".R2.fastq", full.names = TRUE))
+
+sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
+
+```
+
+This shows a plot of the quality of the forward reads
+
+In gray-scale is a heat map of the frequency of each quality score at each base position. The mean quality score at each position is shown by the green line, and the quartiles of the quality score distribution by the orange lines. The red line shows the scaled proportion of reads that extend to at least that position (this is more useful for other sequencing technologies, as Illumina reads are typically all the same length, hence the flat red line).
+
+```{r}
+plotQualityProfile(fnFs[1:5])
+```
+
+This plot shows quality of the reverse reads
+
+```{r}
+plotQualityProfile(fnRs[1:5])
+```
+
+# Use CutAdapt to remove Primers
+
+This is the path to cut adapt. I don't have permission to run on raven but I can run this on my laptop with appropriate directory
+
+```{r}
+cutadapt <- "../Applications/cutadapt.exe"
+```
+
+These are the COI primers. Taken from methods txt file from Jonah ventures. The Function allOrients makes forward, compliment, reverse, and reverse compliment for both primers. This is to look for the primers in the sequences in any orientation (PrimerHits, the next function/ chunck)
+
+```{r}
+FWD <- "GGWACWGGWTGAACWGTWTAYCCYCC"
+REV <- "TANACYTCNGGRTGNCCRAARAAYCA" #N's replaced I's from Jonah
+
+allOrients <- function(primer) {
+  require(Biostrings)
+  dna <- DNAString(primer)
+  orients <- c(Forward = dna, Complement = complement(dna), Reverse = reverse(dna), RevComp = reverseComplement(dna))
+  return(sapply(orients, toString))
+}
+
+FWD.orients <- allOrients(FWD)
+FWD.orients
+REV.orients <- allOrients(REV)
+REV.orients
+```
+
+PrimerHits function is looking for the primers in all orientations in the sequences.
+
+```{r}
+primerHits <- function(primer, fn){
+  nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
+  return(sum(nhits > 0))
+}
+
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs[[1]]),
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs[[1]]))
+
+```
+
+This checks that we can use cutadapt
+
+```{r}
+system2(cutadapt, args = "--version")
+```
+
+Running cutadapt. Permission denied on raven but works on laptop
+
+```{r}
+path.cut <- file.path(path, "cutadapt")
+if(!dir.exists(path.cut)) dir.create(path.cut)
+fnFs.cut <- file.path(path.cut, basename(fnFs))
+fnRs.cut <- file.path(path.cut, basename(fnRs))
+
+R1.flags <- paste0("-g", " ^", FWD)
+R2.flags <- paste0("-G", " ^", REV)
+
+for(i in seq_along(fnFs)) {
+  system2(cutadapt, args = c(R1.flags, R2.flags,
+                             "-m 1", #discards reads having length zero bp
+                             "--discard-untrimmed",
+                             "-o", fnFs.cut[i], "-p", fnRs.cut[i], #output files
+                             fnFs[i], fnRs[i])) #input files
+}
+```
+
+# Check Quality after Removing Primers
+
+Path to fastq files after trimming primers
+
+```{r}
+path.cut <- "../Data/cutadapt"
+list.files(path.cut)
+```
+
+Sorting forward and reverse reads based on file name pattern. save as objects
+
+```{r}
+
+fnFs_cut <- sort(list.files(path.cut, pattern=".R1.fastq", full.names = TRUE))
+fnRs_cut <- sort(list.files(path.cut, pattern=".R2.fastq", full.names = TRUE))
+
+sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
+
+```
+
+This shows a plot of the quality of the forward reads
+
+```{r}
+plotQualityProfile(fnFs_cut[1:5])
+```
+
+This plot shows quality of the reverse reads
+
+```{r}
+plotQualityProfile(fnRs_cut[1:5])
+```
+
+# Filter and trim
+
+```{r}
+
+filtF1s <- file.path(path, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
+filtR1s <- file.path(path, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
+names(filtF1s) <- sample.names
+names(filtR1s) <- sample.names
+
+out <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
+                      maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
+                      compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
+
+head(out)
+
+```
+
+```{r learning errors}
+errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
+errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
+```
+
+visualise the estimated error rates
+
+```{r}
+plotErrors(errF1, nominalQ=TRUE)
+```
+
+```{r dereplicate}
+
+derepF1s <- derepFastq(filtF1s, verbose = TRUE)
+derepR1s <- derepFastq(filtR1s, verbose = TRUE)
+
+```
+
+```{r dadaing}
+
+dadaF1s <- dada(derepF1s, err = errF1, multithread = TRUE)
+
+dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
+
+dadaF1s[[1]]
+```
+
+# Merge paired reads
+
+```{r}
+mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, verbose=TRUE)
+# Inspect the merger data.frame from the first sample
+head(mergers[[1]])
+```
+
+# Construct sequence table
+
+construct an amplicon sequence variant table (ASV) table, a higher-resolution version of the OTU table produced by traditional methods.
+
+```{r}
+seqtab <- makeSequenceTable(mergers)
+
+dim(seqtab)
+
+```
+
+The sequence table is a matrix with rows corresponding to (and named by) the samples, and columns corresponding to (and named by) the sequence variants.
+
+```{r}
+#Inspect distribution of sequence lengths
+table(nchar(getSequences(seqtab)))
+```
+
+# Remove Chimeras
+
+The core dada method corrects substitution and indel errors, but chimeras remain. Fortunately, the accuracy of sequence variants after denoising makes identifying chimeric ASVs simpler than when dealing with fuzzy OTUs. Chimeric sequences are identified if they can be exactly reconstructed by combining a left-segment and a right-segment from two more abundant "parent" sequences.
+
+```{r RemovingChimeras, message=F}
+
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+
+dim(seqtab.nochim)
+
+
+```
+
+```{r}
+sum(seqtab.nochim)/sum(seqtab)
+```
+
+# Track the reads through the pipeline.
+
+```{r}
+getN <- function(x) sum(getUniques(x))
+track <- cbind(out, sapply(dadaF1s, getN), sapply(dadaR1s, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+# If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+head(track)
+```
+
+![](images/Screenshot%202023-05-09%20154746.png)
