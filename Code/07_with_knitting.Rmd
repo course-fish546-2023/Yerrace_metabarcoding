@@ -1,7 +1,7 @@
 ---
-title: "06_practice"
+title: "Lionfish Gut Content Metabarcoding"
 author: "Sarah Yerrace"
-date: "2023-05-03"
+date: "2023-05-11"
 output: 
   html_document:
     theme: readable
@@ -28,6 +28,10 @@ knitr::opts_chunk$set(
   fig.align = "center" # Align plots to the center
 )
 ```
+
+# Project introduction
+
+This is a bioinformatic pipeline that starts with multiple fastq files provided by sequencing company JonahVentures. The project is Lionfish gut content metabarcoding of COI on mtDNA. Each fastq files are the sequences found within the gut of one individual fish.
 
 # Acknowledgments
 
@@ -81,11 +85,15 @@ In gray-scale is a heat map of the frequency of each quality score at each base 
 plotQualityProfile(fnFs[1:5])
 ```
 
+![](images/pre%20cut.png)
+
 This plot shows quality of the reverse reads
 
 ```{r}
 plotQualityProfile(fnRs[1:5])
 ```
+
+![](images/precut_r.png)
 
 # Use CutAdapt to remove Primers
 
@@ -173,17 +181,21 @@ sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
 
 ```
 
-This shows a plot of the quality of the forward reads
+This shows a plot of the quality of the forward reads after removing primers
 
 ```{r}
 plotQualityProfile(fnFs_cut[1:5])
 ```
 
-This plot shows quality of the reverse reads
+![](images/post%20cut%20f.png)
+
+This plot shows quality of the reverse reads after removing primers
 
 ```{r}
 plotQualityProfile(fnRs_cut[1:5])
 ```
+
+![](images/post%20cut%20r.png)
 
 # Filter and trim
 
@@ -202,6 +214,21 @@ head(out)
 
 ```
 
+![](images/trim.png){width="382"}
+
+Checking the quality after filtering and trimming
+
+```{r Check quality after trimming}
+plotQualityProfile(filtF1s)
+
+plotQualityProfile(filtR1s)
+
+```
+
+![](images/filt1.png)
+
+![](images/filt2.png)
+
 ```{r learning errors}
 errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
 errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
@@ -209,9 +236,11 @@ errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
 
 visualise the estimated error rates
 
-```{r}
+```{r visualize errors}
 plotErrors(errF1, nominalQ=TRUE)
 ```
+
+![](images/error%20model.png)
 
 ```{r dereplicate}
 
@@ -228,6 +257,8 @@ dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
 
 dadaF1s[[1]]
 ```
+
+![](images/dada.png){width="420"}
 
 # Merge paired reads
 
@@ -254,6 +285,8 @@ The sequence table is a matrix with rows corresponding to (and named by) the sam
 #Inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
 ```
+
+![](images/distribution.png){width="143"}
 
 # Remove Chimeras
 
@@ -284,3 +317,5 @@ head(track)
 ```
 
 ![](images/Screenshot%202023-05-09%20154746.png)
+
+Next step: Taxon Assignment

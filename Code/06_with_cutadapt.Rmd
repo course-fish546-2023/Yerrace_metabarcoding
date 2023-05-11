@@ -168,8 +168,8 @@ plotQualityProfile(fnRs_cut[1:5])
 
 filtF1s <- file.path(path, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
 filtR1s <- file.path(path, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
-names(filtFs) <- sample.names
-names(filtRs) <- sample.names
+names(filtF1s) <- sample.names
+names(filtR1s) <- sample.names
 
 out <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
                       maxN=0, maxEE=c(2,2), truncQ=2, rm.phix=TRUE,
@@ -178,6 +178,12 @@ out <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
 head(out)
 
 ```
+```{r Check quality after trimming}
+plotQualityProfile(filtF1s)
+
+plotQualityProfile(filtR1s)
+```
+
 
 ```{r learning errors}
 errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
