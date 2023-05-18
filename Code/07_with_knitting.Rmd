@@ -33,6 +33,17 @@ knitr::opts_chunk$set(
 
 This is a bioinformatic pipeline that starts with multiple fastq files provided by sequencing company JonahVentures. The project is Lionfish gut content metabarcoding of COI on mtDNA. Each fastq files are the sequences found within the gut of one individual fish.
 
+# Figure End Goal (Week 8)
+
+This is an example of the desired output from the bioinformatic pipeline. Some columns were omitted for brevity (for example, the columns with the sequence, kingdom, and phylum). ESVid is the ID of the Estimated Sequence Variance. Class Order, Family, Genus, and Species refer to the taxonomic identification of the ESV. X..Match refers to the percent match. Columns with names following S0434##.# format refer to the sample (individual lionfish gut) Numbers in the matrix refer to how many sequences of the given taxa were found in the sample, with zero being not found in that sample. Number of sequences does not correlate with the abundace or amount of prey from a species in the stomach. We can only infer presence/ absence and frequency of occurance of each taxon.
+
+Row two taxon is *Pterois volitans* (Red Lionfish). I left this in as an example, but for data analysis, all *P. volitans* reads would be removed under the assumption that these reads are from the stomach lining of the individual and not representative of conspecific consumption (canabalism).
+
+```{r, eval = TRUE, echo = FALSE}
+table<-read.csv("../Output/JVB1606-UniCOI-read-data.csv")
+head(table[,-c(1,3,4,5,18)])
+```
+
 # Acknowledgments
 
 Following <https://benjjneb.github.io/dada2/tutorial.html>

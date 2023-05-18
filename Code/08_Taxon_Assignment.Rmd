@@ -1,0 +1,53 @@
+---
+title: "08_Taxon_Assignment"
+author: "Sarah Yerrace"
+date: "2023-05-13"
+output: html_document
+---
+
+Load libraries
+
+```{r}
+library(dada2)
+library(digest)
+library(phyloseq)
+library(tidyverse)
+library(seqinr)
+library(ape)
+library(DECIPHER)
+library(ade4)
+library(filesstrings)
+```
+
+
+Import the sequence-table
+
+```{r}
+seqtab.project.miseqrun1 <- as.matrix(
+  read.delim(
+    "../Output/Lionfish_sequence-table.tsv",
+    header =TRUE,
+    sep = "\t",
+    row.names = 1
+    )
+  )
+```
+
+yolo
+
+```{r}
+taxonomy <- assignTaxonomy(
+  seqtab.nochim,
+  "../Data/ALL_Atlantic_2_Feb_2017.fasta",
+  taxLevels = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "species"),
+  tryRC = FALSE,
+  minBoot = 50,
+  outputBootstraps = TRUE,
+  multithread = TRUE,
+  verbose = TRUE
+)
+
+
+```
+
+

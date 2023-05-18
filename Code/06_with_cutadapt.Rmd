@@ -259,10 +259,23 @@ sum(seqtab.nochim)/sum(seqtab)
 
 ```{r}
 getN <- function(x) sum(getUniques(x))
-track <- cbind(out_Fs, sapply(dadaF1s, getN), sapply(dadaR1s, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+track <- cbind(out, sapply(dadaF1s, getN), sapply(dadaR1s, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
 # If processing a single sample, remove the sapply calls: e.g. replace sapply(dadaFs, getN) with getN(dadaFs)
 colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
 rownames(track) <- sample.names
 head(track)
+```
+
+This exports a sequence-table: columns of ASV's, rows of samples, and values = number of reads.
+
+```{r}
+write.table(
+  seqtab.nochim,
+  file="../Output/Lionfish_sequence-table.tsv",
+  quote = FALSE,
+  sep="\t",
+  row.names = TRUE,
+  col.names = NA
+)
 ```
 
