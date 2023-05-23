@@ -7,7 +7,8 @@ output: html_document
 
 This is the second part of the gut content metabarcoding pipeline after 01_with_cutadapt
 
-Load libraries
+
+# Load libraries
 
 ```{r}
 library(dada2)
@@ -21,8 +22,7 @@ library(ade4)
 library(filesstrings)
 ```
 
-
-Import the sequence-table
+# Import the sequence-table
 
 ```{r}
 seqtab.project.miseqrun1 <- as.matrix(
@@ -35,12 +35,39 @@ seqtab.project.miseqrun1 <- as.matrix(
   )
 ```
 
-yolo
+# Set up the Atlantic Fasfa file
+
+Translate command to make | into ;
+```{bash}
+tr '|' ';' < ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta
+```
+
+Translate commands to remove returns
+```{bash}
+tr '
+' ';' < ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta
+```
+
+Sed command to put returns where I want them
+```{bash}
+sed 's/>/\'$'\n/g' < ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta
+```
+
+sed command to put > back at beginning
+```{bash}
+sed 's/^/>/' < ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta
+```
+
+# yolo
 
 ```{r}
 taxonomy <- assignTaxonomy(
-  seqtab.nochim,
-  "../Data/ALL_Atlantic_2_Feb_2017.fasta",
+  seqtab.project.miseqrun1,
+  "../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta",
   taxLevels = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "species"),
   tryRC = FALSE,
   minBoot = 50,
@@ -53,3 +80,21 @@ taxonomy <- assignTaxonomy(
 ```
 
 
+
+# Bash
+
+```{bash}
+../../Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastx -h
+```
+
+
+```{bash}
+../../Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastn \
+-query ../Data/filtered/ \
+-db ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+-out ../Output/Test.tab \
+-evalue 1E-20 \
+-num_threads 20 \
+-max_target_seqs 1 \
+-outfmt 6
+```
