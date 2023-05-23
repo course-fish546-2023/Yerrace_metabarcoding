@@ -5,6 +5,8 @@ date: "2023-05-03"
 output: html_document
 ---
 
+This script is the start of gut content metabarcoding pipeline
+
 Following
 https://benjjneb.github.io/dada2/tutorial.html
 
