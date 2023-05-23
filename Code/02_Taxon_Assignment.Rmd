@@ -5,6 +5,8 @@ date: "2023-05-13"
 output: html_document
 ---
 
+This is the second part of the gut content metabarcoding pipeline after 01_with_cutadapt
+
 Load libraries
 
 ```{r}
