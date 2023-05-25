@@ -41,7 +41,7 @@ Row two taxon is *Pterois volitans* (Red Lionfish). I left this in as an example
 
 ```{r, eval = TRUE, echo = FALSE}
 table<-read.csv("../Output/JVB1606-UniCOI-read-data.csv")
-head(table[,-c(1,3,4,5,18)])
+datatable(table[,-c(1,3,4,5,18)])
 ```
 
 # Acknowledgments
