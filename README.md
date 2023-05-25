@@ -3,6 +3,9 @@ DNA metabarcoding of gut contents, specifically COI gene on mitochondrial gene
 
 https://rpubs.com/Scuba-Sarah/week_07
 
+Zenodo For Week 09
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7972145.svg)](https://doi.org/10.5281/zenodo.7972145)
 
 Need to match sequences to known database from Smithsonian Institution
 
