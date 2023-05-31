@@ -1,7 +1,7 @@
 ---
 title: "Lionfish Gut Content Metabarcoding"
 author: "Sarah Yerrace"
-date: "2023-05-11"
+date: "Last Update: May 30, 2023"
 output: 
   html_document:
     theme: readable
@@ -31,18 +31,13 @@ knitr::opts_chunk$set(
 
 # Project introduction
 
-This is a bioinformatic pipeline that starts with multiple fastq files provided by sequencing company JonahVentures. The project is Lionfish gut content metabarcoding of COI on mtDNA. Each fastq files are the sequences found within the gut of one individual fish.
+For another scientist:
 
-# Figure End Goal (Week 8)
+This is a bioinformatic pipeline that starts with multiple fastq files provided by sequencing company JonahVentures. The project is Lionfish gut content metabarcoding of COI on mtDNA. Each fastq files are the sequences found within the gut of one individual fish. Reference file contains sequences from visually identified fishes collected in the same transect as the lionfish.
 
-This is an example of the desired output from the bioinformatic pipeline. Some columns were omitted for brevity (for example, the columns with the sequence, kingdom, and phylum). ESVid is the ID of the Estimated Sequence Variance. Class Order, Family, Genus, and Species refer to the taxonomic identification of the ESV. X..Match refers to the percent match. Columns with names following S0434##.# format refer to the sample (individual lionfish gut) Numbers in the matrix refer to how many sequences of the given taxa were found in the sample, with zero being not found in that sample. Number of sequences does not correlate with the abundace or amount of prey from a species in the stomach. We can only infer presence/ absence and frequency of occurance of each taxon.
+For any person off the street:
 
-Row two taxon is *Pterois volitans* (Red Lionfish). I left this in as an example, but for data analysis, all *P. volitans* reads would be removed under the assumption that these reads are from the stomach lining of the individual and not representative of conspecific consumption (canabalism).
-
-```{r, eval = TRUE, echo = FALSE}
-table<-read.csv("../Output/JVB1606-UniCOI-read-data.csv")
-datatable(table[,-c(1,3,4,5,18)])
-```
+I am using DNA to identify partially digested material found in the stomachs of lionfish to understand what they are eating. This code will identify the DNA sequences from the stomachs based off of sequences from visually identified species collected in the same area as the lionfish.
 
 # Acknowledgments
 
@@ -329,4 +324,171 @@ head(track)
 
 ![](images/Screenshot%202023-05-09%20154746.png)
 
-Next step: Taxon Assignment
+# Taxon Assignment
+
+In theory, one command takes the output from above and assigns taxonomy based on a reference file
+
+```{r}
+taxonomy <- assignTaxonomy(
+  seqtab.project.miseqrun1,
+  "../Data/ALL_Atlantic_2_Feb_2017.fasta",
+  taxLevels = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "species"),
+  tryRC = FALSE,
+  minBoot = 50,
+  outputBootstraps = TRUE,
+  multithread = TRUE,
+  verbose = TRUE
+)
+
+```
+
+However, our input file is not formatted correctly, and it give this error:
+
+[**Error in assignTaxonomy(seqtab.project.miseqrun1, "../Data/ALL_Atlantic_2\_Feb_2017.fasta", : Incorrect reference file format for assignTaxonomy.**]{style="color:red"}
+
+## Set up the Atlantic Fasfa file
+
+Here is the original file
+
+```{r, engine="bash", eval=TRUE}
+head -n 15 ../Data/ALL_Atlantic_2_Feb_2017.fasta | tail -n 5
+```
+
+Translate command to make \| into ;
+
+```{bash}
+tr '|' ';' < ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta
+```
+
+Translate commands to remove returns
+
+```{bash}
+tr '
+' ';' < ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta
+```
+
+Sed command to put returns where I want them
+
+```{bash}
+sed 's/>/\'$'\n/g' < ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta
+```
+
+sed command to put \> back at beginning of each line
+
+```{bash}
+sed 's/^/>/' < ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta
+```
+
+Here is how the referece file looks now
+
+```{r, engine="bash", eval=TRUE}
+head -n 15 ../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta | tail -n 3
+```
+
+assignTaxonomy function should then assign taxonomy after editing the reference file to the appropriate format
+
+```{r}
+taxonomy <- assignTaxonomy(
+  seqtab.project.miseqrun1,
+  "../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta",
+  taxLevels = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "species"),
+  tryRC = FALSE,
+  minBoot = 50,
+  outputBootstraps = TRUE,
+  multithread = TRUE,
+  verbose = TRUE
+)
+
+```
+
+BUT IT STILL DIDN'T WORK even after editing the reference file. It returns this error:
+
+[**Error in tax[[1]] : subscript out of bounds**]{style="color:red"}
+
+Which appears to mean some sequences in the reference file are shorter than some desired length. So let's just Blast like normal. A for effort.
+
+# Blast with defeat
+
+Shout out to Halia cause I took this from her.
+
+Check if the softwear is working and you can access the help menu
+
+```{bash}
+../Applications/ncbi-blast-2.13.0+/bin/blastx -h
+```
+
+make the blast database
+
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/makeblastdb \
+-in ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+-dbtype nucl \
+-out ../Output/Reference_DB
+```
+
+Write output from dada pipline (seqtab.nochim) to a fasta file that can be blasted transpose table
+
+```{r}
+seqtab.nochim_trans <- as.data.frame(t(seqtab.nochim)) %>% rownames_to_column(var = "sequence") %>% 
+    rowid_to_column(var = "OTUNumber") %>% mutate(OTUNumber = sprintf("otu%04d", 
+    OTUNumber)) %>% mutate(sequence = str_replace_all(sequence, "(-|\\.)", ""))
+```
+
+convert seqtab.nochim_trans to fasta file and double check where it goes in the directory
+
+```{r}
+df <- seqtab.nochim_trans
+seq_out <- Biostrings::DNAStringSet(df$sequence)
+
+names(seq_out) <- str_c(df$OTUNumber, df$Supergroup, df$Division, df$Class, 
+    df$Order, df$Family, df$Genus, df$Species, sep = "|")
+
+Biostrings::writeXStringSet(seq_out, str_c( "Test_1_ASV.fasta"), compress = FALSE, 
+    width = 20000)
+
+```
+
+examine fasta file
+
+```{r, engine="bash", eval=TRUE}
+head ../Data/Test_1_ASV.fasta
+```
+
+# Run Blast
+
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/blastn \
+-query ../Data/Test_1_ASV.fasta \
+-db ../Output/Reference_DB \
+-out ../Output/Test_1_ASV.tab \
+-num_threads 8 \
+-max_target_seqs 1 \
+-outfmt 6
+```
+
+Examine blast output
+
+```{r, engine="bash", eval=TRUE}
+head -2 ../Output/Test_1_ASV.tab
+wc -l ../Output/Test_1_ASV.tab
+```
+
+This is really ugly, but I think it technically worked.
+
+# End Table
+
+This is the desired output from the bioinformatic pipeline. Some columns were omitted for brevity (for example, the columns with the sequence, kingdom, and phylum). ESVid is the ID of the Estimated Sequence Variance. Class Order, Family, Genus, and Species refer to the taxonomic identification of the ESV. X..Match refers to the percent match. Columns with names following S0434##.# format refer to the sample (individual lionfish gut) Numbers in the matrix refer to how many sequences of the given taxa were found in the sample, with zero being not found in that sample. Number of sequences does not correlate with the abundace or amount of prey from a species in the stomach. We can only infer presence/ absence and frequency of occurance of each taxon.
+
+Taxon *Pterois volitans* (Red Lionfish) reads removed under the assumption that these reads are from the stomach lining of the individual and not representative of conspecific consumption (canabalism).
+
+Data interpretation: We cannot assume more reads = more of that taxon in the sample. We can look at general presence/ absence or frequency of occurance.
+
+```{r, eval = TRUE}
+table<-read.csv("../Output/JVB1606-UniCOI-read-data.csv") #Read in Table
+table_no_lions <- table[-c(which(table$Genus=="Pterois")),] #Remove Lionfish reads
+datatable(table_no_lions[,-c(1,3,4,5,18)]) #View table without a few columns
+```

@@ -80,21 +80,74 @@ taxonomy <- assignTaxonomy(
 ```
 
 
-
 # Bash
 
 ```{bash}
-../../Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastx -h
+cd ../Applications/
+curl -O https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.14.0+-x64-macosx.tar.gz
+tar -xf ncbi-blast-2.14.0+-x64-macosx.tar.gz
 ```
 
 
+Check if it's working
+
 ```{bash}
-../../Yerrace_metabarcoding/Applications/ncbi-blast-2.13.0+/bin/blastn \
--query ../Data/filtered/ \
--db ../Data/ALL_Atlantic_2_Feb_2017.fasta \
--out ../Output/Test.tab \
--evalue 1E-20 \
--num_threads 20 \
+../Applications/ncbi-blast-2.13.0+/bin/blastx -h
+```
+
+# Make blast database
+
+make the blast database
+
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/makeblastdb \
+-in ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+-dbtype nucl \
+-out ../Output/Reference_DB
+```
+
+Write output to a fasta file that can be blasted
+transpose table
+```{r, eval=TRUE}
+seqtab.nochim_trans <- as.data.frame(t(seqtab.nochim)) %>% rownames_to_column(var = "sequence") %>% 
+    rowid_to_column(var = "OTUNumber") %>% mutate(OTUNumber = sprintf("otu%04d", 
+    OTUNumber)) %>% mutate(sequence = str_replace_all(sequence, "(-|\\.)", ""))
+```
+
+convert to fasta file
+```{r, eval=TRUE}
+df <- seqtab.nochim_trans
+seq_out <- Biostrings::DNAStringSet(df$sequence)
+
+names(seq_out) <- str_c(df$OTUNumber, df$Supergroup, df$Division, df$Class, 
+    df$Order, df$Family, df$Genus, df$Species, sep = "|")
+
+Biostrings::writeXStringSet(seq_out, str_c( "Test_1_ASV.fasta"), compress = FALSE, 
+    width = 20000)
+
+#I had to move this file from my working directory to my data directory
+```
+
+examine fasta file
+```{r, engine="bash", eval=TRUE}
+head ../Data/Test_1_ASV.fasta
+```
+
+# Run Blast
+
+change blastx to blastn
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/blastn \
+-query ../Data/Test_1_ASV.fasta \
+-db ../Output/Reference_DB \
+-out ../Output/Test_1_ASV.tab \
+-num_threads 8 \
 -max_target_seqs 1 \
 -outfmt 6
+```
+
+Examine blast output
+```{r, engine="bash"}
+head -2 ../Output/Test_1_ASV.tab
+wc -l ../Output/Test_1_ASV.tab
 ```
