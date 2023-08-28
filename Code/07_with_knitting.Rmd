@@ -41,7 +41,11 @@ I am using DNA to identify partially digested material found in the stomachs of 
 
 # Acknowledgments
 
-Following <https://benjjneb.github.io/dada2/tutorial.html>
+Thank you to my collaborator and co-author Dr. Jordan Casey for sending along her script to follow and also this repository for the detailed walk through as well: <https://benjjneb.github.io/dada2/tutorial.html>
+
+# Work Flow
+
+Check quality of reads \> Remove primers \> Filter and Trim \> Merge paired reads \> Remove chimeras \> construct ASV/OTU table \> Assign taxonomy
 
 # Set Up
 
@@ -492,3 +496,7 @@ table<-read.csv("../Output/JVB1606-UniCOI-read-data.csv") #Read in Table
 table_no_lions <- table[-c(which(table$Genus=="Pterois")),] #Remove Lionfish reads
 datatable(table_no_lions[,-c(1,3,4,5,18)]) #View table without a few columns
 ```
+
+# Next Steps
+
+I will run an Analysis of Similarity Profile (SIMPROF) based on Bray-Curtis dissimilarity metrics to see if there is a significant difference in diet composition from lionfish collected from deep reefs (below 40m) and from lionfish collected from shallow reefs (above 40m). A similarity percentage analysis (SIMPER) will be used to determine which species are driving observed differences

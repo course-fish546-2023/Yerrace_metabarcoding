@@ -1,0 +1,56 @@
+---
+title: "04_Visualization"
+author: "Sarah Yerrace"
+date: "2023-08-28"
+output: html_document
+---
+
+```{r}
+library(dada2)
+library(digest)
+library(phyloseq)
+library(tidyverse)
+library(seqinr)
+library(ape)
+library(DECIPHER)
+library(ade4)
+library(filesstrings)
+```
+
+
+```{r}
+read_table_transposed <- t(read_table_species)
+datatable(read_table_transposed, fillContainer = T)
+```
+
+```{r}
+install.packages("janitor")
+library(janitor)
+rownames(read_table_transposed) <- colnames(read_table_species)
+#move first row to column names
+read_table_final<-row_to_names(read_table_transposed, 1, remove_rows_above = FALSE)
+```
+
+```{r}
+#convert to matrix
+community_matrix<-as.matrix(read_table_final)
+#convert to numeric matrix
+community_matrix<- matrix(as.numeric(community_matrix),   
+                  ncol = ncol(community_matrix))
+#convert to proportions
+community_matrix<-community_matrix/rowSums(community_matrix)
+#arcsine sqrt transformation
+community_matrix_sqrt<-asin(sqrt(community_matrix))
+```
+
+```{r}
+install.packages("vegan")
+library(vegan)
+NMDS=metaMDS(community_matrix_sqrt,distance="bray",trymax=100)
+```
+
+```{r}
+stressplot(NMDS)
+```
+
+

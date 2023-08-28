@@ -1,0 +1,158 @@
+---
+title: "03_MARES_Taxon_Assignment"
+author: "Sarah Yerrace"
+date: "2023-05-13"
+output: html_document
+---
+
+# Load libraries
+
+```{r}
+library(dada2)
+library(digest)
+library(phyloseq)
+library(tidyverse)
+library(seqinr)
+library(ape)
+library(DECIPHER)
+library(ade4)
+library(filesstrings)
+```
+
+
+# Import the sequence-table
+
+```{r}
+seqtab.project.miseqrun1 <- as.matrix(
+  read.delim(
+    "../Output/Lionfish_sequence-table.tsv",
+    header =TRUE,
+    sep = "\t",
+    row.names = 1
+    )
+  )
+```
+
+# Bash
+
+```{bash}
+cd ../Applications/
+curl -O https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.14.0+-x64-macosx.tar.gz
+tar -xf ncbi-blast-2.14.0+-x64-macosx.tar.gz
+```
+
+
+Check if it's working
+
+```{bash}
+../Applications/ncbi-blast-2.13.0+/bin/blastx -h
+```
+
+# Make blast database
+
+make the blast database
+
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/makeblastdb \
+-in ../Data/MARES/MARES_NOBAR_16012023.fasta \
+-dbtype nucl \
+-out ../Output/Reference_DB_MARES_NOBAR
+```
+
+Write output to a fasta file that can be blasted
+transpose table
+```{r, eval=TRUE}
+seqtab.nochim_trans <- as.data.frame(t(seqtab.nochim)) %>% rownames_to_column(var = "sequence") %>% 
+    rowid_to_column(var = "OTUNumber") %>% mutate(OTUNumber = sprintf("otu%04d", 
+    OTUNumber)) %>% mutate(sequence = str_replace_all(sequence, "(-|\\.)", ""))
+```
+
+convert to fasta file
+```{r, eval=TRUE}
+df <- seqtab.nochim_trans
+seq_out <- Biostrings::DNAStringSet(df$sequence)
+
+names(seq_out) <- str_c(df$OTUNumber, df$Supergroup, df$Division, df$Class, 
+    df$Order, df$Family, df$Genus, df$Species, sep = "|")
+
+Biostrings::writeXStringSet(seq_out, str_c( "Test_MARES_NOBAR_ASV.fasta"), compress = FALSE, 
+    width = 20000)
+
+#Move file from code to my data directory
+```
+
+examine fasta file
+```{r, engine="bash", eval=TRUE}
+head ../Data/Test_MARES_NOBAR_ASV.fasta
+```
+
+# Run Blast
+
+change blastx to blastn
+```{r, engine="bash"}
+../Applications/ncbi-blast-2.13.0+/bin/blastn \
+-query ../Data/Test_MARES_NOBAR_ASV.fasta \
+-db ../Output/Reference_DB_MARES_NOBAR \
+-out ../Output/Test_MARES_NOBAR_ASV.tab \
+-num_threads 8 \
+-max_target_seqs 1 \
+-outfmt 6
+```
+
+
+
+Examine blast output
+```{r, engine="bash"}
+head ../Output/Test_MARES_NOBAR_ASV.tab
+wc -l ../Output/Test_MARES_NOBAR_ASV.tab
+```
+
+
+# Filter Blast Hits and Merge Tables
+
+```{r}
+setwd("~/Yerrace_metabarcoding/Output")
+
+#read ASV table into R
+Test_ASV <- read.table("Test_MARES_NOBAR_ASV.tab")
+
+#rename columns
+colnames(Test_ASV) = c("OTUNumber", "Species", "pident", "length","mismatch","gapopen","qstart","qend","sstart","send","evalue","bitscore")
+
+#merge tables by otu number
+read_table<-left_join(Test_ASV, seqtab.nochim_trans, by = join_by("OTUNumber" == "OTUNumber"))
+datatable(read_table, fillContainer = T)
+```
+
+Filter by sequence length
+
+```{r}
+# remove ASV with sequences shorter than 300 bp
+read_table_sub <- subset(read_table, read_table$length>300) 
+
+#remove ASV with pident <95%
+read_table_sub2 <- subset(read_table_sub, read_table_sub$pident>98) 
+```
+
+Sum by Taxa
+```{r}
+#remove unneeded columns
+read_table_summed<- read_table_sub2[ -c(1,3:13) ]
+
+#remove prefix
+read_table_summed$Species <- sub(".*__", "", read_table_summed$Species)
+
+#summarize by species
+by_species <- read_table_summed %>%
+  group_by(Species)
+
+read_table_species<-by_species %>%
+  summarise_all(sum)
+
+datatable(read_table_species, fillContainer = T)
+```
+
+Write table to CSV
+```{r}
+write.csv(read_table_species, "~/Yerrace_metabarcoding/Output/read_table.csv", row.names=FALSE)
+```

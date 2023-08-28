@@ -1,4 +1,4 @@
----
+a---
 title: "06_practice"
 author: "Sarah Yerrace"
 date: "2023-05-03"
@@ -18,10 +18,12 @@ Load the necessary packages
 library (tidyverse)
 install.packages('insect')
 library (insect)
-#if (!requireNamespace("BiocManager", quietly = TRUE))
+if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
+BiocManager::install("phyloseq")
 BiocManager::install("dada2")
+BiocManager::install("DECIPHER")
 library (digest)
 library (seqinr)
 library(lubridate)
@@ -280,4 +282,49 @@ write.table(
   col.names = NA
 )
 ```
+
+```{r}
+seqtab.nochim.tb <- as_tibble(seqtab.nochim, rownames = "sample")
+```
+
+```{r}
+# The sequence-table has a column with sample names, and N columns of ASV's
+# containing count values. We want all the count data to be in a single column,
+# so we use a tidyr command called "pivot_longer" to make the table "tall",
+# which means the table goes from 17x2811 to 47770x3 for example
+# (47770 = 2810 x 17. 2810 instead of 2811 because the first column of the
+# original table contains sample names, not counts). This makes the table tidier
+# (meaning that each column is now a true variable).
+
+seqtab.nochim.tall <- seqtab.nochim.tb %>%
+  pivot_longer (
+    !sample,
+    names_to = "ASV",
+    values_to = "count"
+  )
+
+# Look at your new table.
+head(seqtab.nochim.tall)
+# Look at the dimensions of this table.
+dim(seqtab.nochim.tall)
+
+# Remove rows with sequence counts = 0. This removes any samples in which a
+# particular ASV was not found.
+seqtab.nochim.tall.nozero <- subset(seqtab.nochim.tall, count != 0)
+# Look at the dimensions of this table to compare to the previous.
+dim(seqtab.nochim.tall.nozero)
+
+# Export Sequence-List Table. This includes 3 columns: sample name, ASV
+# sequence, and read count for that sample name ASV combo. This is a tidy table
+# (each column a variable), and is a good way to include all the possible data
+# involved.
+write.table(
+  seqtab.nochim.tall.nozero,
+  file="../Output/Lionfish_sequence_SeqList_Tall.tsv",
+  quote = FALSE,
+  sep="\t",
+  row.names = FALSE
+)
+```
+
 
