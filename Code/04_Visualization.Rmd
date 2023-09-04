@@ -15,6 +15,10 @@ library(ape)
 library(DECIPHER)
 library(ade4)
 library(filesstrings)
+install.packages("vegan")
+library(vegan)
+install.packages("janitor")
+library(janitor)
 ```
 
 
@@ -24,8 +28,6 @@ datatable(read_table_transposed, fillContainer = T)
 ```
 
 ```{r}
-install.packages("janitor")
-library(janitor)
 rownames(read_table_transposed) <- colnames(read_table_species)
 #move first row to column names
 read_table_final<-row_to_names(read_table_transposed, 1, remove_rows_above = FALSE)
@@ -44,8 +46,6 @@ community_matrix_sqrt<-asin(sqrt(community_matrix))
 ```
 
 ```{r}
-install.packages("vegan")
-library(vegan)
 NMDS=metaMDS(community_matrix_sqrt,distance="bray",trymax=100)
 ```
 

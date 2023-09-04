@@ -9,44 +9,56 @@ This script is the start of gut content metabarcoding pipeline
 
 Following
 https://benjjneb.github.io/dada2/tutorial.html
+and using scripts provided by Dr. Jordan Casey
+
+This protocol is for paired-end demultiplexed miseq sequences that have 
+sufficient overlap to merge R1 and R2
 
 # Set Up
 
 Load the necessary packages
 
 ```{r}
-library (tidyverse)
-install.packages('insect')
-library (insect)
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+install.packages("digest")
+install.packages("tidyverse")
+install.packages("seqinr")
+install.packages("ape")
+install.packages("ade4")
+install.packages("filesstrings")
 
-BiocManager::install("phyloseq")
-BiocManager::install("dada2")
-BiocManager::install("DECIPHER")
-library (digest)
-library (seqinr)
-library(lubridate)
-library(ShortRead)
+
 library(dada2); packageVersion("dada2")
+library(digest)
 library(dplyr)
+library(phyloseq)
+library(tidyverse)
+library(data.table)
+library(seqinr)
+library(ape)
+library(DECIPHER)
+library(ade4)
+library(janitor)
+library(vegan)
+library(filesstrings)
+library(BiocManager)
+library(ShortRead)
 ```
 
 # Check the Starting Quality
 
-Path to fastq files after trimming primers 
+Path to unedited fastq files
 
 ```{r}
-path <- "../Data/"
-list.files(path)
+reads.to.trim <- "../Data/Raw"
+list.files(reads.to.trim)
 ```
 
 Sorting forward and reverse reads based on file name pattern
 
 ```{r}
 
-fnFs <- sort(list.files(path, pattern=".R1.fastq", full.names = TRUE))
-fnRs <- sort(list.files(path, pattern=".R2.fastq", full.names = TRUE))
+fnFs <- sort(list.files(reads.to.trim, pattern=".R1.fastq", full.names = TRUE))
+fnRs <- sort(list.files(reads.to.trim, pattern=".R2.fastq", full.names = TRUE))
 
 sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
 
@@ -57,13 +69,13 @@ This shows a plot of the quality of the forward reads
 In gray-scale is a heat map of the frequency of each quality score at each base position. The mean quality score at each position is shown by the green line, and the quartiles of the quality score distribution by the orange lines. The red line shows the scaled proportion of reads that extend to at least that position (this is more useful for other sequencing technologies, as Illumina reads are typically all the same length, hence the flat red line).
 
 ```{r}
-plotQualityProfile(fnFs[1:5])
+plotQualityProfile(fnFs[1:143],aggregate = TRUE)
 ```
 
 This plot shows quality of the reverse reads
 
 ```{r}
-plotQualityProfile(fnRs[1:5])
+plotQualityProfile(fnRs[1:143],aggregate = TRUE)
 ```
 
 # Use CutAdapt to remove Primers
@@ -134,6 +146,7 @@ for(i in seq_along(fnFs)) {
 }
 ```
 
+
 # Check Quality after Removing Primers
 
 Path to fastq files after trimming primers 
@@ -154,24 +167,38 @@ sample.names <- str_replace(basename(fnFs), ".1.R1.fastq","")
 
 ```
 
+Check for primers in all orientations in cut sequences
+
+```{r}
+primerHits <- function(primer, fn){
+  nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
+  return(sum(nhits > 0))
+}
+
+rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs_cut[[1]]),
+      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs_cut[[1]]))
+
+```
+
+
 This shows a plot of the quality of the forward reads
 
 ```{r}
-plotQualityProfile(fnFs_cut[1:5])
+plotQualityProfile(fnFs_cut[1:143],aggregate = TRUE)
 ```
 
 This plot shows quality of the reverse reads
 
 ```{r}
-plotQualityProfile(fnRs_cut[1:5])
+plotQualityProfile(fnRs_cut[1:143],aggregate = TRUE)
 ```
 
 # Filter and trim
 
 ```{r}
 
-filtF1s <- file.path(path, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
-filtR1s <- file.path(path, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
+filtF1s <- file.path(path.cut, "filtered", paste0(sample.names, ".R1.filt.fastq.gz"))
+filtR1s <- file.path(path.cut, "filtered", paste0(sample.names, ".R2.filt.fastq.gz"))
 names(filtF1s) <- sample.names
 names(filtR1s) <- sample.names
 
@@ -182,23 +209,78 @@ out <- filterAndTrim(fnFs_cut, filtF1s, fnRs_cut, filtR1s, truncLen=c(200,200),
 head(out)
 
 ```
-```{r Check quality after trimming}
-plotQualityProfile(filtF1s)
 
-plotQualityProfile(filtR1s)
+
+```{r Check quality after trimming}
+plotQualityProfile(filtF1s[1:5])
+
+plotQualityProfile(filtR1s[1:5])
+```
+For these plots, the green line is the mean quality score at that position,
+the orange lines are the quartiles (solid for median, dashed for 25% and 75%)
+and the red line represents the proportion of reads existing at that position.
+```{r}
+#after removing primers, trimming, filtering
+
+#Forward
+qualplotF <- plotQualityProfile(
+  filtF1s[1:143],
+  aggregate = TRUE
+)
+qualplotF
+
+#Reverse
+qualplotR <- plotQualityProfile(
+  filtR1s[1:143],
+  aggregate = TRUE
+)
+qualplotR
 ```
 
+Here we use a portion of the data to determine error rates. These error rates
+will be used in the next (denoising) step to narrow down the sequences to a
+reduced and corrected set of unique sequences
 
 ```{r learning errors}
-errF1 <- learnErrors(filtF1s, multithread=TRUE,verbose = 0)
-errR1 <- learnErrors(filtR1s, multithread=TRUE,verbose = 0)
+errF <- learnErrors(
+  filtF1s,
+  nbases = 1e+08,
+  errorEstimationFunction = loessErrfun,
+  multithread = TRUE,
+  randomize = FALSE,
+  MAX_CONSIST = 10,
+  OMEGA_C = 0,
+  qualityType = "Auto",
+  verbose = FALSE
+)
+
+errR <- learnErrors(
+  filtR1s, 
+  nbases = 1e+08,
+  errorEstimationFunction = loessErrfun,
+  multithread = TRUE,
+  randomize = FALSE,
+  MAX_CONSIST = 10,
+  OMEGA_C = 0,
+  qualityType = "Auto",
+  verbose = FALSE
+)
 ```
 
-visualise the estimated error rates
+We can visualize the estimated error rates to make sure they don't look too
+crazy. The red lines are error rates expected under the "...nominal defintion
+of the Q-score." The black dots are "...observed error rates for each
+consensus quality score." The black line shows the "...estimated error rates
+after convergence of the machine-learning algorithm." I think the main things
+to look at here are to make sure that each black line is a good fit to the
+observed error rates, and that estimated error rates decrease with increased
+quality.
 
 ```{r}
-plotErrors(errF1, nominalQ=TRUE)
+plotErrors(errF, nominalQ=TRUE)
 ```
+
+I'm not sure if I need this step?
 
 ```{r dereplicate}
 
@@ -207,11 +289,16 @@ derepR1s <- derepFastq(filtR1s, verbose = TRUE)
 
 ```
 
+This applies the "core sample inference algorithm" (i.e. denoising) in dada2
+to get corrected unique sequences. The two main inputs are the first, which is
+the filtered sequences (filtFs), and "err =" which is the error file from
+learnErrors (effF).
+
 ```{r dadaing}
 
-dadaF1s <- dada(derepF1s, err = errF1, multithread = TRUE)
+dadaF1s <- dada(derepF1s, err = errF, multithread = TRUE)
 
-dadaR1s <- dada(derepR1s, err = errR1, multithread = TRUE)
+dadaR1s <- dada(derepR1s, err = errR, multithread = TRUE)
 
 dadaF1s[[1]]
 ```
@@ -219,7 +306,9 @@ dadaF1s[[1]]
 # Merge paired reads
 
 ```{r}
-mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, verbose=TRUE)
+mergers <- mergePairs(dadaF1s, filtF1s, dadaR1s, filtR1s, 
+                      minOverlap = 12, maxMismatch = 3, verbose=TRUE)
+
 # Inspect the merger data.frame from the first sample
 head(mergers[[1]])
 ```
@@ -231,6 +320,7 @@ construct an amplicon sequence variant table (ASV) table, a higher-resolution ve
 ```{r}
 seqtab <- makeSequenceTable(mergers)
 
+# This describes the dimensions of the table just made
 dim(seqtab)
 
 ```
@@ -240,7 +330,17 @@ The sequence table is a matrix with rows corresponding to (and named by) the sam
 ```{r}
 #Inspect distribution of sequence lengths
 table(nchar(getSequences(seqtab)))
+
 ```
+If you want to remove certain lengths, use this code
+
+```{r}
+# In this example, we only keep reads between 298 and 322 bp in length.
+seqtab313 <- seqtab[,nchar(colnames(seqtab)) %in% 250:322]
+dim(seqtab313)
+table(nchar(getSequences(seqtab313)))
+```
+
 
 # Remove Chimeras
 
@@ -248,15 +348,16 @@ The core dada method corrects substitution and indel errors, but chimeras remain
 
 ```{r RemovingChimeras, message=F}
 
-seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE)
+seqtab.nochim <- removeBimeraDenovo(seqtab313, method="consensus", multithread=TRUE)
 
 dim(seqtab.nochim)
-
 
 ```
 
 ```{r}
-sum(seqtab.nochim)/sum(seqtab)
+# This looks at the % of samples that were not chimeras.
+sum(seqtab.nochim)/sum(seqtab313)
+
 ```
 
 # Track the reads through the pipeline.

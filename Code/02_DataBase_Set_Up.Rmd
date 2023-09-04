@@ -1,0 +1,64 @@
+---
+title: "02_DatabaseSetUp"
+author: "Sarah Yerrace"
+date: "2023-05-13"
+output: html_document
+---
+
+This is the second part of the gut content metabarcoding pipeline after 01_with_cutadapt
+
+
+# Load libraries
+
+```{r}
+library(dada2)
+library(digest)
+library(phyloseq)
+library(tidyverse)
+library(seqinr)
+library(ape)
+library(DECIPHER)
+library(ade4)
+library(filesstrings)
+```
+
+# Import the sequence-table
+
+```{r}
+seqtab.project.miseqrun1 <- as.matrix(
+  read.delim(
+    "../Output/Lionfish_sequence-table.tsv",
+    header =TRUE,
+    sep = "\t",
+    row.names = 1
+    )
+  )
+```
+
+# Set up the Atlantic Fasfa file
+
+Translate command to make | into ;
+```{bash}
+tr '|' ';' < ../Data/ALL_Atlantic_2_Feb_2017.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta
+```
+
+Translate commands to remove returns
+```{bash}
+tr '
+' ';' < ../Data/ALL_Atlantic_2_Feb_2017_edit.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta
+```
+
+Sed command to put returns where I want them
+```{bash}
+sed 's/>/\'$'\n/g' < ../Data/ALL_Atlantic_2_Feb_2017_edit2.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta
+```
+
+sed command to put > back at beginning
+```{bash}
+sed 's/^/>/' < ../Data/ALL_Atlantic_2_Feb_2017_edit3.fasta \
+> ../Data/ALL_Atlantic_2_Feb_2017_edit4.fasta
+```
+

@@ -8,6 +8,7 @@ output: html_document
 # Load libraries
 
 ```{r}
+install.packages("data.table")
 library(dada2)
 library(digest)
 library(phyloseq)
@@ -17,6 +18,8 @@ library(ape)
 library(DECIPHER)
 library(ade4)
 library(filesstrings)
+library("data.table")
+library(janitor)
 ```
 
 
